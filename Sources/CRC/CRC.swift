@@ -4,17 +4,21 @@ public class CRC32
     var POLYNOMIAL : UInt32
     var revrese : Bool
     var _lookupTable : [UInt32] = []
+    var inputReversed : Bool
+    var resultReversed : Bool
     
     var startValue : UInt32
-    var finalXor : UInt32 = 0;
+    var finalXor : UInt32;
     
     
-    init(polynom p : UInt32 , reversed rev : Bool , startValue sv : UInt32 = 0 , finalXor xor : UInt32 = 0)
+    init(polynom p : UInt32 = 0x04C11DB7, reversed rev : Bool = false , startValue sv : UInt32 = 0xFFFFFFFF , finalXor xor : UInt32 = 0xFFFFFFFF , inputReversed ir : Bool = true , resultReversed rr : Bool = true)
     {
         POLYNOMIAL = p
         revrese = rev
         startValue = sv
         finalXor = xor
+        inputReversed = ir
+        resultReversed = rr
     }
     
     /**
@@ -49,6 +53,21 @@ public class CRC32
         }
 
         return resVal
+    }
+    
+    private func Reverse8(_ val : UInt8) -> UInt32
+    {
+        var resVal : UInt8 = 0
+
+        for var i in 0..<8
+        {
+            if ((val & (1 << i)) != 0)
+            {
+                resVal |= (1 << (7 - i))
+            }
+        }
+
+        return UInt32(resVal)
     }
 
     func calcLookupTable(  ) -> [UInt32]
@@ -100,7 +119,7 @@ public class CRC32
         var crc : UInt32  = startValue
         for var b in bytes
         {
-            let bl : UInt32 = UInt32(b )
+            let bl : UInt32 = inputReversed ? Reverse8( b ) : UInt32( b )
             let crcXor = crc >> 24
             /* XOR-in next input byte into MSB of crc and get this MSB, that's our new intermediate divident */
             let pos =   (crcXor ^ bl) & 0xff
@@ -111,7 +130,8 @@ public class CRC32
             crc = crcLeft ^ lookupTable[Int(pos)]
         }
 
-        return crc ^ finalXor
+        let result = crc ^ finalXor
+        return resultReversed ? Reverse32(result) : result
     }
 }
 
@@ -119,7 +139,7 @@ public class CRC32Posix : CRC32
 {
     public init( reversed rev : Bool = false)
     {
-        super.init(polynom: 0x04C11DB7 , reversed: rev , finalXor: 0xFFFFFFFF)
+        super.init(polynom: 0x04C11DB7 , reversed: rev , startValue: 0, finalXor: 0xFFFFFFFF , inputReversed: false , resultReversed: false )
     }
 }
 
@@ -127,7 +147,8 @@ public class CRC32Mpeg2 : CRC32
 {
     public init( reversed rev : Bool = false)
     {
-        super.init(polynom: 0x04C11DB7 , reversed: rev , startValue: 0xFFFFFFFF)
+        super.init(polynom: 0x04C11DB7 , reversed: rev , startValue: 0xFFFFFFFF , finalXor: 0x0 ,  inputReversed: false , resultReversed: false )
+
     }
 }
 
@@ -135,6 +156,52 @@ public class CRC32Bzip2 : CRC32
 {
     public init( reversed rev : Bool = false)
     {
-        super.init(polynom: 0x04C11DB7 , reversed: rev , startValue: 0xFFFFFFFF  , finalXor: 0xFFFFFFFF)
+        super.init(polynom: 0x04C11DB7 , reversed: rev , startValue: 0xFFFFFFFF  , finalXor: 0xFFFFFFFF , inputReversed: false , resultReversed: false )
+
+    }
+}
+
+public class CRC32_C : CRC32
+{
+    public init( reversed rev : Bool = false)
+    {
+        super.init(polynom: 0x1EDC6F41 , reversed: rev , startValue: 0xFFFFFFFF  , finalXor: 0xFFFFFFFF , inputReversed: true , resultReversed: true )
+
+    }
+}
+
+public class CRC32_D : CRC32
+{
+    public init( reversed rev : Bool = false)
+    {
+        super.init(polynom: 0xA833982B , reversed: rev , startValue: 0xFFFFFFFF  , finalXor: 0xFFFFFFFF , inputReversed: true , resultReversed: true )
+
+    }
+}
+
+public class CRC32_Q : CRC32
+{
+    public init( reversed rev : Bool = false)
+    {
+        super.init(polynom: 0x814141AB , reversed: rev , startValue: 0x0  , finalXor: 0x0 , inputReversed: false , resultReversed:false )
+
+    }
+}
+
+public class CRC32JamCRC : CRC32
+{
+    public init( reversed rev : Bool = false)
+    {
+        super.init(polynom: 0x4C11DB7 , reversed: rev , startValue: 0xFFFFFFFF  , finalXor: 0x0 , inputReversed: true  , resultReversed:true )
+
+    }
+}
+
+public class CRC32Xfer : CRC32
+{
+    public init( reversed rev : Bool = false)
+    {
+        super.init(polynom: 0xAF , reversed: rev , startValue: 0x0  , finalXor: 0x0 , inputReversed: false  , resultReversed:false )
+
     }
 }
